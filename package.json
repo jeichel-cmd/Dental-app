@@ -1,0 +1,19 @@
+{
+  "name": "smile-studio",
+  "version": "1.0.0",
+  "description": "Teeth try-on for Dental Team Biberach: on-device, offline home-screen app",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "e2e": "node tests/e2e.mjs",
+    "fixtures": "node scripts/fixture.mjs",
+    "vendor": "node scripts/vendor.mjs",
+    "icons": "node scripts/icons.mjs"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "playwright": "^1.63.0"
+  },
+  "private": true,
+  "type": "module"
+}
