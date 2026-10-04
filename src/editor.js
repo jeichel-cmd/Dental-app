@@ -84,6 +84,7 @@ export function openEditor(root, ctx) {
 
   let dirty = true;
   let frame = 0;
+  let interacting = false; // quicker, lighter rendering while a finger or slider moves
   function rebuild() {
     dirty = true;
     if (!frame) frame = requestAnimationFrame(() => { frame = 0; draw(); });
@@ -101,7 +102,7 @@ export function openEditor(root, ctx) {
     const hh = Math.min(image.height, Math.ceil(area.y1)) - y;
     fctx.clearRect(x, y, w, hh);
     fctx.drawImage(image, x, y, w, hh, x, y, w, hh);
-    if (showing === 'after') renderSmile(fctx, mouth, design, light);
+    if (showing === 'after') renderSmile(fctx, mouth, design, light, { fast: interacting });
     lastBounds = b;
     dirty = false;
   }
@@ -176,6 +177,7 @@ export function openEditor(root, ctx) {
   }
 
   function setDesign(patch) {
+    interacting = true;
     if (!gestureBase) gestureBase = { design, mouth: structuredClone(mouth) };
     design = { ...design, ...patch };
     if (showing !== 'after') {
@@ -186,6 +188,10 @@ export function openEditor(root, ctx) {
   }
 
   function commit() {
+    if (interacting) {
+      interacting = false;
+      rebuild();
+    }
     if (gestureBase) {
       history.push(gestureBase);
       if (history.length > 80) history.shift();
@@ -376,6 +382,7 @@ export function openEditor(root, ctx) {
         }, h('span', { class: 'swatch', style: { background: `rgb(${shadeRGB(s.id).map(Math.round).join(',')})` } }), s.id))));
       }
       parts.push(num('bright', 'Helligkeit', 'Dunkler', 'Heller', -1, 1, 0.01));
+      parts.push(num('translucency', 'Schneidekante', 'Deckend', 'Transluzent', 0, 1, 0.01));
     }
     if (tab === 'details') {
       parts.push(num('curve', 'Lachlinie', 'Gerade', 'Geschwungen', 0, 1, 0.01));
@@ -383,6 +390,7 @@ export function openEditor(root, ctx) {
       parts.push(num('arch', 'Zahnbogen', 'Schmal', 'Breit', 0, 1, 0.01));
       parts.push(num('gaps', 'Abstände', 'Eng', 'Kleine Lücken', 0, 1, 0.01));
       parts.push(num('diastema', 'Lücke zwischen den Einsern', 'Keine', 'Deutlich', 0, 1, 0.01));
+      parts.push(num('texture', 'Oberfläche', 'Glatt & gleichmäßig', 'Natürliche Struktur', 0, 1, 0.01));
       parts.push(toggle('Untere Zähne zeigen', design.lower, (v) => applyDesign({ lower: v })));
       parts.push(toggle('Zahnfleisch zeigen', design.gum, (v) => applyDesign({ gum: v })));
     }
@@ -391,7 +399,7 @@ export function openEditor(root, ctx) {
       parts.push(num('rot', 'Drehen', 'Links', 'Rechts', -12, 12, 0.1));
       parts.push(slider({
         label: 'Lippenrand', left: 'Mehr Zähne', right: 'Weniger Zähne', min: -1.5, max: 2.5, step: 0.05, value: mouth.lip || 0,
-        onInput: (v) => { if (!gestureBase) gestureBase = { design, mouth: structuredClone(mouth) }; mouth.lip = v; rebuild(); },
+        onInput: (v) => { interacting = true; if (!gestureBase) gestureBase = { design, mouth: structuredClone(mouth) }; mouth.lip = v; rebuild(); },
         onChange: () => commit(),
       }));
       parts.push(h('div', { class: 'row wrap' },
@@ -482,6 +490,7 @@ export function openEditor(root, ctx) {
       const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
       setDesign({ size: Math.min(1.25, Math.max(0.8, drag.size * (d / drag.dist))) });
     } else if (drag.kind === 'point') {
+      interacting = true;
       if (!gestureBase) gestureBase = { design, mouth: structuredClone(mouth) };
       mouth.poly[drag.index] = toImage(p[0], p[1]);
       if (!mouth.auto) {

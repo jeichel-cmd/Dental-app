@@ -42,67 +42,143 @@ export function cropAround(mouth, photo, mode) {
   return { x, y, w, h };
 }
 
-function footer(ctx, W, H, band, label) {
-  ctx.fillStyle = BRAND.colors.paper;
-  ctx.fillRect(0, H - band, W, band);
-  ctx.fillStyle = BRAND.colors.brand;
-  ctx.fillRect(0, H - band, W, Math.max(2, band * 0.04));
-  const pad = band * 0.32;
-  ctx.fillStyle = BRAND.colors.ink;
-  ctx.font = `600 ${band * 0.27}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
-  ctx.textBaseline = 'middle';
-  ctx.fillText(BRAND.name, pad, H - band * 0.6);
-  ctx.font = `${band * 0.17}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillStyle = '#5b6770';
-  ctx.fillText(`${label} · ${BRAND.disclaimer}`, pad, H - band * 0.27);
+const FONT = '-apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", Arial, sans-serif';
+
+// The practice mark used on screen, drawn into exported images.
+const TOOTH_PATH = 'M9 5c-3 0-5 2.5-5 6.5 0 3.5 1.6 6 2.4 9.5.7 3.2 1.2 6 2.9 6 1.6 0 1.8-3.4 2.6-6 .5-1.7 1.3-2.5 4.1-2.5s3.6.8 4.1 2.5c.8 2.6 1 6 2.6 6 1.7 0 2.2-2.8 2.9-6 .8-3.5 2.4-6 2.4-9.5C28 7.5 26 5 23 5c-2.6 0-4.3 1.6-7 1.6S11.6 5 9 5z';
+
+function header(ctx, W, y, unit, title, subtitle, logo) {
+  const pad = unit * 4;
+  if (logo) {
+    const h = unit * 3.2;
+    ctx.drawImage(logo, pad, y, (logo.width / logo.height) * h, h);
+  } else {
+    ctx.save();
+    ctx.translate(pad, y);
+    ctx.scale((unit * 3.2) / 32, (unit * 3.2) / 32);
+    ctx.fillStyle = BRAND.colors.brand;
+    ctx.fill(new Path2D(TOOTH_PATH));
+    ctx.restore();
+    ctx.fillStyle = BRAND.colors.ink;
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = `600 ${unit * 1.35}px ${FONT}`;
+    ctx.fillText(BRAND.name, pad + unit * 4, y + unit * 1.55);
+    ctx.fillStyle = BRAND.colors.brand;
+    ctx.font = `600 ${unit * 0.8}px ${FONT}`;
+    ctx.fillText(BRAND.app.toUpperCase().split('').join(' '), pad + unit * 4, y + unit * 2.85);
+  }
   ctx.textAlign = 'right';
-  ctx.fillText(new Date().toLocaleDateString('de-DE'), W - pad, H - band * 0.6);
+  ctx.fillStyle = BRAND.colors.ink;
+  ctx.font = `600 ${unit * 1.35}px ${FONT}`;
+  ctx.fillText(title, W - pad, y + unit * 1.55);
+  ctx.fillStyle = '#6b7780';
+  ctx.font = `${unit * 0.85}px ${FONT}`;
+  ctx.fillText(subtitle, W - pad, y + unit * 2.85);
   ctx.textAlign = 'left';
 }
 
-function tag(ctx, x, y, text, size) {
-  ctx.font = `600 ${size}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
-  const w = ctx.measureText(text).width + size * 1.2;
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, size * 1.8, size * 0.9);
-  ctx.fill();
-  ctx.fillStyle = BRAND.colors.ink;
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + size * 0.6, y + size * 0.92);
+function footer(ctx, W, y, unit, label) {
+  const pad = unit * 4;
+  ctx.fillStyle = '#e4e9ec';
+  ctx.fillRect(pad, y, W - pad * 2, Math.max(1, unit * 0.06));
+  ctx.fillStyle = '#6b7780';
+  ctx.font = `${unit * 0.75}px ${FONT}`;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(`${label ? `${label} · ` : ''}${BRAND.disclaimer}`, pad, y + unit * 1.6);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = BRAND.colors.brand;
+  ctx.font = `600 ${unit * 0.75}px ${FONT}`;
+  ctx.fillText(BRAND.web, W - pad, y + unit * 1.6);
+  ctx.textAlign = 'left';
 }
 
-// kind: 'after' (one photo), 'compare' (before and after side by side), 'smile' (close-up, before and after).
-export function buildExport(photo, mouth, design, kind, lookName = '') {
+// A photo panel with rounded corners, a soft shadow and a label.
+function panel(ctx, src, area, x, y, w, h, unit, label, accent) {
+  const r = unit * 0.9;
+  ctx.save();
+  ctx.shadowColor = 'rgba(16,30,40,0.18)';
+  ctx.shadowBlur = unit * 1.6;
+  ctx.shadowOffsetY = unit * 0.4;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.clip();
+  // Cover-fit the area into the panel.
+  const k = Math.max(w / area.w, h / area.h);
+  const sw = w / k;
+  const sh = h / k;
+  ctx.drawImage(src, area.x + (area.w - sw) / 2, area.y + (area.h - sh) / 2, sw, sh, x, y, w, h);
+  ctx.restore();
+  if (label) {
+    ctx.font = `600 ${unit * 0.8}px ${FONT}`;
+    const tw = ctx.measureText(label).width + unit * 1.6;
+    const th = unit * 1.6;
+    ctx.fillStyle = accent ? BRAND.colors.brand : 'rgba(255,255,255,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(x + unit * 0.8, y + unit * 0.8, tw, th, th / 2);
+    ctx.fill();
+    ctx.fillStyle = accent ? '#fff' : BRAND.colors.ink;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + unit * 1.6, y + unit * 0.8 + th / 2 + unit * 0.04);
+    ctx.textBaseline = 'alphabetic';
+  }
+}
+
+// kind: 'compare' (before and after, with smile close-ups), 'after' (one portrait), 'smile' (close-ups only).
+export function buildExport(photo, mouth, design, kind, { lookName = '', patientName = '', logo = null } = {}) {
   const after = composite(photo, mouth, design, true);
   const before = composite(photo, mouth, design, false);
-  const area = cropAround(mouth, photo, kind === 'smile' ? 'smile' : 'face');
-  const target = kind === 'after' ? 1600 : 1100; // width of each picture in px
-  const scale = Math.min(target / area.w, 2.5);
-  const pw = area.w * scale;
-  const ph = area.h * scale;
-  const gap = kind === 'after' ? 0 : Math.round(pw * 0.02);
-  const W = kind === 'after' ? pw : pw * 2 + gap;
-  const band = Math.round(W * (kind === 'after' ? 0.09 : 0.06));
-  const out = canvas(W, ph + band);
+  const face = cropAround(mouth, photo, 'face');
+  const smile = cropAround(mouth, photo, 'smile');
+  const W = kind === 'after' ? 1800 : 2400;
+  const unit = W / 60;
+  const pad = unit * 4;
+  const gap = unit * 1.2;
+  const headH = unit * 6.5;
+  const date = new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+  const subtitle = [patientName, date].filter(Boolean).join(' · ');
+  const inner = W - pad * 2;
+  let H;
+  const draw = [];
+  if (kind === 'compare') {
+    const pw = (inner - gap) / 2;
+    const ph = pw * 1.22;
+    const sh = pw * 0.48;
+    H = headH + ph + gap + sh + unit * 6;
+    draw.push((c) => panel(c, before, face, pad, headH, pw, ph, unit, 'Vorher'));
+    draw.push((c) => panel(c, after, face, pad + pw + gap, headH, pw, ph, unit, 'Nachher', true));
+    draw.push((c) => panel(c, before, smile, pad, headH + ph + gap, pw, sh, unit));
+    draw.push((c) => panel(c, after, smile, pad + pw + gap, headH + ph + gap, pw, sh, unit));
+  } else if (kind === 'after') {
+    const ph = inner * 1.22;
+    H = headH + ph + unit * 6;
+    draw.push((c) => panel(c, after, face, pad, headH, inner, ph, unit, 'Ihr neues Lächeln', true));
+  } else {
+    const sh = inner * 0.42;
+    H = headH + sh * 2 + gap + unit * 6;
+    draw.push((c) => panel(c, before, smile, pad, headH, inner, sh, unit, 'Vorher'));
+    draw.push((c) => panel(c, after, smile, pad, headH + sh + gap, inner, sh, unit, 'Nachher', true));
+  }
+  const out = canvas(W, H);
   const ctx = out.getContext('2d');
   ctx.imageSmoothingQuality = 'high';
-  ctx.fillStyle = BRAND.colors.paper;
-  ctx.fillRect(0, 0, out.width, out.height);
-  const size = Math.round(band * 0.2);
-  if (kind === 'after') {
-    ctx.drawImage(after, area.x, area.y, area.w, area.h, 0, 0, pw, ph);
-  } else {
-    ctx.drawImage(before, area.x, area.y, area.w, area.h, 0, 0, pw, ph);
-    ctx.drawImage(after, area.x, area.y, area.w, area.h, pw + gap, 0, pw, ph);
-    tag(ctx, size, size, 'Vorher', size);
-    tag(ctx, pw + gap + size, size, 'Nachher', size);
-  }
-  footer(ctx, out.width, out.height, band, lookName ? `Look: ${lookName}` : 'Ihr neues Lächeln');
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#ffffff');
+  bg.addColorStop(1, '#f3f6f7');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  header(ctx, W, unit * 1.8, unit, 'Ihr Lächeln-Entwurf', subtitle, logo);
+  for (const f of draw) f(ctx);
+  footer(ctx, W, H - unit * 3, unit, lookName ? `Look „${lookName}“` : '');
   return out;
 }
 
-export const toBlob = (c, type = 'image/jpeg', q = 0.92) => new Promise((r) => c.toBlob(r, type, q));
+export const toBlob = (c, type = 'image/jpeg', q = 0.94) => new Promise((r) => c.toBlob(r, type, q));
 
 export function fileName(patientName, kind) {
   const safe = (patientName || 'Patient').normalize('NFKD').replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '');

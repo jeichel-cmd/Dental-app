@@ -389,7 +389,18 @@ async function showEditor(patient, photo, favorite) {
   });
 }
 
-// ---- sharing -----------------------------------------------------------------------------------
+// ---- sharing ----
+
+let logoImage;
+async function brandLogo() {
+  if (!BRAND.logo) return null;
+  if (logoImage === undefined) {
+    logoImage = new Image();
+    logoImage.src = BRAND.logo;
+    await logoImage.decode().catch(() => (logoImage = null));
+  }
+  return logoImage;
+}
 
 function showExport(patient, photo, image, design, mouth) {
   const fav = (patient.favorites || []).find((f) => JSON.stringify(f.design) === JSON.stringify(design));
@@ -400,7 +411,7 @@ function showExport(patient, photo, image, design, mouth) {
   const seg = h('div', { class: 'segmented' });
   const paint = async () => {
     seg.replaceChildren(...kinds.map(([id, label]) => h('button', { class: kind === id ? 'active' : '', onclick: () => { kind = id; paint(); } }, label)));
-    const c = buildExport(image, mouth, design, kind, fav?.name);
+    const c = buildExport(image, mouth, design, kind, { lookName: fav?.name, patientName: patient.name, logo: await brandLogo() });
     const blob = await toBlob(c);
     if (preview.src) URL.revokeObjectURL(preview.src);
     preview.src = URL.createObjectURL(blob);

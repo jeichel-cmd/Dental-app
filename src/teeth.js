@@ -41,6 +41,8 @@ export const DEFAULT_DESIGN = Object.freeze({
   arch: 0.5, // 0 narrow, 1 broad
   shade: 'A2',
   bright: 0, // -1 darker to 1 brighter
+  translucency: 0.55, // biting edges: 0 opaque, 1 very translucent like young natural teeth
+  texture: 0.5, // surface character: 0 smooth and uniform, 1 natural texture and colour play
   lower: true, // show lower teeth
   gum: true, // show gum between the teeth
   dx: 0, // position offset in mm, set by dragging
@@ -196,6 +198,7 @@ export function outline(tooth, design) {
   pts.push(...mesial.slice(1), [-halfW(sideEnd(-1, rMesial)), sideEnd(-1, rMesial)]);
   // Mesial side back up to the gum.
   for (let v = sideEnd(-1, rMesial) - 0.04; v > capH; v -= 0.04) pts.push([-halfW(v), v]);
+  pts.shape = { halfW, edgeY, capH, cusp };
   return pts;
 }
 
