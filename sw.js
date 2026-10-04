@@ -1,5 +1,5 @@
 // Keeps the app working offline. The app never talks to any server except the one it was installed from.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `shell-${VERSION}`;
 const MODEL = 'model-v1';
 
@@ -13,16 +13,20 @@ const SHELL_FILES = [
   'icons/apple-touch-icon.png',
   'src/app.js',
   'src/brand.js',
+  'src/catalog.js',
   'src/crypto.js',
   'src/editor.js',
   'src/exporter.js',
   'src/face.js',
+  'src/i18n.js',
   'src/looks.js',
   'src/render.js',
   'src/shades.js',
+  'src/smile.js',
   'src/store.js',
   'src/teeth.js',
   'src/ui.js',
+  'assets/catalog/smile-01.jpg',
 ];
 
 const MODEL_FILES = [

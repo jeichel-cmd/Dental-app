@@ -6,7 +6,7 @@ import { shadeRGB } from './shades.js';
 // ---- small helpers ---------------------------------------------------------------------------
 
 
-function makeCanvas(w, h) {
+export function makeCanvas(w, h) {
   if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(Math.max(1, w), Math.max(1, h));
   const c = document.createElement('canvas');
   c.width = Math.max(1, w);
@@ -199,7 +199,7 @@ function edgeBlur(data, ox, oy, w, h, mouth) {
 
 // ---- noise -------------------------------------------------------------------------------------
 
-function hash(x, y, seed) {
+export function hash(x, y, seed) {
   let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 982451653)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
@@ -494,7 +494,12 @@ export function renderSmile(ctx, mouth, design, light = { gain: 1, tint: [1, 1, 
   const g = layer.getContext('2d');
   g.putImageData(out, 0, 0);
 
-  // Shadows from the lips and the corners of the mouth, only on what is visible.
+  finishLayer(ctx, g, lipsLayer, mouth, ps, b, light);
+}
+
+// Shadows from the lips and the corners of the mouth on what is visible, then onto the photo with its softness.
+export function finishLayer(ctx, g, lipsLayer, mouth, ps, b, light) {
+  const layer = g.canvas;
   g.globalCompositeOperation = 'source-atop';
   const up = lipsLayer.slice(0, mouth.upper);
   const lo = [lipsLayer[mouth.upper - 1], ...lipsLayer.slice(mouth.upper), lipsLayer[0]];

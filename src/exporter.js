@@ -1,7 +1,9 @@
 // Builds the images patients take home, and hands them to the tablet's share sheet (Mail, AirDrop, Photos...).
 
 import { BRAND } from './brand.js';
-import { renderSmile, photoLight, mouthBounds } from './render.js';
+import { photoLight, mouthBounds } from './render.js';
+import { paintSmile } from './smile.js';
+import { t, dateLocale } from './i18n.js';
 
 function canvas(w, h) {
   const c = document.createElement('canvas');
@@ -14,7 +16,7 @@ export function composite(photo, mouth, design, after = true) {
   const c = canvas(photo.width, photo.height);
   const ctx = c.getContext('2d');
   ctx.drawImage(photo, 0, 0);
-  if (after) renderSmile(ctx, mouth, design, photoLight(ctx, mouth));
+  if (after) paintSmile(ctx, mouth, design, photoLight(ctx, mouth));
   return c;
 }
 
@@ -84,7 +86,7 @@ function footer(ctx, W, y, unit, label) {
   ctx.fillStyle = '#6b7780';
   ctx.font = `${unit * 0.75}px ${FONT}`;
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(`${label ? `${label} · ` : ''}${BRAND.disclaimer}`, pad, y + unit * 1.6);
+  ctx.fillText(`${label ? `${label} · ` : ''}${t('disclaimer')}`, pad, y + unit * 1.6);
   ctx.textAlign = 'right';
   ctx.fillStyle = BRAND.colors.brand;
   ctx.font = `600 ${unit * 0.75}px ${FONT}`;
@@ -140,7 +142,7 @@ export function buildExport(photo, mouth, design, kind, { lookName = '', patient
   const pad = unit * 4;
   const gap = unit * 1.2;
   const headH = unit * 6.5;
-  const date = new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+  const date = new Date().toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long', year: 'numeric' });
   const subtitle = [patientName, date].filter(Boolean).join(' · ');
   const inner = W - pad * 2;
   let H;
@@ -150,19 +152,19 @@ export function buildExport(photo, mouth, design, kind, { lookName = '', patient
     const ph = pw * 1.22;
     const sh = pw * 0.48;
     H = headH + ph + gap + sh + unit * 6;
-    draw.push((c) => panel(c, before, face, pad, headH, pw, ph, unit, 'Vorher'));
-    draw.push((c) => panel(c, after, face, pad + pw + gap, headH, pw, ph, unit, 'Nachher', true));
+    draw.push((c) => panel(c, before, face, pad, headH, pw, ph, unit, t('before')));
+    draw.push((c) => panel(c, after, face, pad + pw + gap, headH, pw, ph, unit, t('after'), true));
     draw.push((c) => panel(c, before, smile, pad, headH + ph + gap, pw, sh, unit));
     draw.push((c) => panel(c, after, smile, pad + pw + gap, headH + ph + gap, pw, sh, unit));
   } else if (kind === 'after') {
     const ph = inner * 1.22;
     H = headH + ph + unit * 6;
-    draw.push((c) => panel(c, after, face, pad, headH, inner, ph, unit, 'Ihr neues Lächeln', true));
+    draw.push((c) => panel(c, after, face, pad, headH, inner, ph, unit, t('exportAfterLabel'), true));
   } else {
     const sh = inner * 0.42;
     H = headH + sh * 2 + gap + unit * 6;
-    draw.push((c) => panel(c, before, smile, pad, headH, inner, sh, unit, 'Vorher'));
-    draw.push((c) => panel(c, after, smile, pad, headH + sh + gap, inner, sh, unit, 'Nachher', true));
+    draw.push((c) => panel(c, before, smile, pad, headH, inner, sh, unit, t('before')));
+    draw.push((c) => panel(c, after, smile, pad, headH + sh + gap, inner, sh, unit, t('after'), true));
   }
   const out = canvas(W, H);
   const ctx = out.getContext('2d');
@@ -172,9 +174,9 @@ export function buildExport(photo, mouth, design, kind, { lookName = '', patient
   bg.addColorStop(1, '#f3f6f7');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
-  header(ctx, W, unit * 1.8, unit, 'Ihr Lächeln-Entwurf', subtitle, logo);
+  header(ctx, W, unit * 1.8, unit, t('exportTitle'), subtitle, logo);
   for (const f of draw) f(ctx);
-  footer(ctx, W, H - unit * 3, unit, lookName ? `Look „${lookName}“` : '');
+  footer(ctx, W, H - unit * 3, unit, lookName ? t('lookLabel', { name: lookName }) : '');
   return out;
 }
 
@@ -183,7 +185,7 @@ export const toBlob = (c, type = 'image/jpeg', q = 0.94) => new Promise((r) => c
 export function fileName(patientName, kind) {
   const safe = (patientName || 'Patient').normalize('NFKD').replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '');
   const date = new Date().toISOString().slice(0, 10);
-  return `${safe}-${{ after: 'Nachher', compare: 'Vorher-Nachher', smile: 'Laecheln' }[kind] || 'Bild'}-${date}.jpg`;
+  return `${safe}-${{ after: t('after'), compare: `${t('before')}-${t('after')}`, smile: t('viewSmile') }[kind].normalize('NFKD').replace(/[^\w-]+/g, '')}-${date}.jpg`;
 }
 
 export function canShareFiles(file) {

@@ -56,29 +56,29 @@ await page.getByRole('button', { name: 'Ansicht wechseln' }).click();
 await page.waitForTimeout(300);
 await shot('04-editor-smile-zoom');
 
-// Try a look and save it as a favourite.
+check(await page.locator('.cat-card.active').count() === 1, 'real teeth photo from the catalogue used by default');
+
+// Simple adjustments: colour, length, then save as favourite.
+await page.getByRole('tab', { name: 'Anpassen' }).click();
+await page.getByRole('button', { name: 'Farbe B1' }).click();
+await page.getByLabel('Länge').fill('1.1');
+await page.getByLabel('Länge').dispatchEvent('change');
+await page.waitForTimeout(300);
+await shot('05-adjusted');
+await page.getByRole('button', { name: 'Aktuellen Look als Favorit speichern' }).click();
+await page.getByLabel('Name').fill('Hell & lang');
+await page.getByRole('button', { name: 'Speichern', exact: true }).click();
+await page.getByText('„Hell & lang“ gespeichert').waitFor();
+
+// A drawn model, saved too.
+await page.getByRole('tab', { name: 'Zähne' }).click();
 await page.getByRole('button', { name: /Hollywood/ }).click();
 await page.waitForTimeout(300);
-await shot('05-look-hollywood');
+await shot('06-model-hollywood');
 await page.getByRole('button', { name: 'Aktuellen Look als Favorit speichern' }).click();
 await page.getByLabel('Name').fill('Hollywood hell');
 await page.getByRole('button', { name: 'Speichern', exact: true }).click();
 await page.getByText('„Hollywood hell“ gespeichert').waitFor();
-
-// Shape it by hand.
-await page.getByRole('tab', { name: 'Form' }).click();
-await page.getByRole('button', { name: /Oval/ }).click();
-await page.getByLabel('Länge').fill('1.18');
-await page.getByLabel('Kanten').fill('0.1');
-await page.getByLabel('Länge').dispatchEvent('change');
-await page.getByRole('tab', { name: 'Farbe' }).click();
-await page.getByRole('button', { name: 'Farbe A1' }).click();
-await page.waitForTimeout(300);
-await shot('06-custom-form');
-await page.getByRole('button', { name: 'Aktuellen Look als Favorit speichern' }).click();
-await page.getByLabel('Name').fill('Lang & weich');
-await page.getByRole('button', { name: 'Speichern', exact: true }).click();
-await page.getByText('„Lang & weich“ gespeichert').waitFor();
 
 // Move the teeth by dragging on the photo.
 const box = await page.locator('.view').boundingBox();
@@ -92,17 +92,30 @@ await page.getByRole('tab', { name: 'Vorher' }).click();
 await page.waitForTimeout(300);
 await shot('07-before');
 check(await page.locator('.badge.before').count() === 1, 'original photo shown');
-await page.getByRole('tab', { name: /Hollywood hell/ }).click();
+await page.getByRole('tab', { name: /Hell & lang/ }).click();
 await page.waitForTimeout(300);
-check(await page.locator('.chip.active', { hasText: 'Hollywood hell' }).count() === 1, 'favourite selected from the strip');
+check(await page.locator('.chip.active', { hasText: 'Hell & lang' }).count() === 1, 'favourite selected from the strip');
+check(await page.locator('.cat-card.active').count() === 1, 'favourite brings back the catalogue photo');
 await shot('08-favourite');
 
-await page.getByRole('tab', { name: 'Feinschliff' }).click();
-await shot('09-details');
+// The practice adds its own photo to the catalogue.
+const chooserCat = page.waitForEvent('filechooser');
+await page.getByRole('button', { name: /Eigenes Foto/ }).click();
+await (await chooserCat).setFiles('assets/catalog/smile-01.jpg');
+await page.getByText('Eckzahn-Spitze links').waitFor();
+await page.waitForTimeout(300);
+await shot('09-catalog-setup');
+await page.getByLabel('Name im Katalog').fill('Praxis Test');
+await page.getByRole('button', { name: 'Speichern', exact: true }).click();
+await page.locator('.editor .cat-card.active', { hasText: 'Praxis Test' }).waitFor();
+await page.waitForTimeout(300);
+check(true, 'own catalogue photo added and tried on');
+await shot('10-own-catalog');
+
 await page.getByRole('tab', { name: 'Position' }).click();
 await page.getByRole('button', { name: /Lippen anpassen/ }).click();
 await page.waitForTimeout(300);
-await shot('10-lip-points');
+await shot('10b-lip-points');
 await page.getByRole('button', { name: /Lippen fertig/ }).click();
 
 // Share image.
@@ -134,6 +147,8 @@ await page.getByRole('button', { name: /Foto hochladen/ }).click();
 await (await chooser2).setFiles('tests/fixtures/smile-2.jpg');
 await page.getByRole('button', { name: 'Ja, liegt vor' }).click();
 await page.locator('.editor').waitFor({ timeout: 60000 });
+await page.waitForTimeout(500);
+await shot('13a-tilted-photo');
 await page.getByRole('button', { name: /Markant/ }).click();
 await page.getByRole('button', { name: 'Ansicht wechseln' }).click();
 await page.waitForTimeout(500);
@@ -149,6 +164,18 @@ await page.getByText('Falscher Code.').waitFor();
 await typeCode('246810');
 await page.getByText('Maria Muster').waitFor();
 await shot('14-patients');
+
+// Language switch.
+await page.getByRole('button', { name: 'EN', exact: true }).click();
+await page.getByRole('heading', { name: 'Patients' }).waitFor();
+await shot('14b-patients-en');
+await page.getByRole('button', { name: 'Settings' }).click();
+check(await page.locator('.cat-row').count() === 1, 'own catalogue photo listed in settings');
+await shot('14c-settings-en');
+await page.getByRole('dialog').getByRole('button', { name: 'DE', exact: true }).click();
+await page.getByRole('heading', { name: 'Einstellungen' }).waitFor();
+await page.getByRole('button', { name: 'Schließen' }).click();
+check(true, 'language switches between German and English');
 const raw = await page.evaluate(() => new Promise((resolve) => {
   const req = indexedDB.open('smile-studio');
   req.onsuccess = () => {

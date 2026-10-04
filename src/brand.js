@@ -7,6 +7,6 @@ export const BRAND = {
   tagline: 'Wir machen Zahnersatz zum Vorzeigen!',
   web: 'dental-team-biberach.de',
   logo: null, // e.g. 'icons/logo.png'
-  colors: { brand: '#1d6f8b', ink: '#16222c', paper: '#ffffff' },
+  colors: { brand: '#e4761e', ink: '#16222c', paper: '#ffffff' },
   disclaimer: 'Simulation zur Orientierung. Das Ergebnis kann abweichen.',
 };

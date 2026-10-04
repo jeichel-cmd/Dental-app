@@ -1,5 +1,7 @@
 // Small DOM helpers shared by all screens.
 
+import { t, dateLocale } from './i18n.js';
+
 export function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
@@ -71,7 +73,7 @@ export function sheet(title, body, { onClose, wide } = {}) {
     onClose?.();
   };
   const panel = h('div', { class: `sheet${wide ? ' wide' : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
-    h('div', { class: 'sheet-head' }, h('h2', {}, title), h('button', { class: 'icon-btn', 'aria-label': 'Schließen', onclick: close }, icon('close'))),
+    h('div', { class: 'sheet-head' }, h('h2', {}, title), h('button', { class: 'icon-btn', 'aria-label': t('close'), onclick: close }, icon('close'))),
     body);
   backdrop.append(panel);
   backdrop.addEventListener('pointerdown', (e) => {
@@ -81,19 +83,19 @@ export function sheet(title, body, { onClose, wide } = {}) {
   return { close, panel };
 }
 
-export function confirmSheet(title, text, okLabel = 'OK', { danger } = {}) {
+export function confirmSheet(title, text, okLabel = t('ok'), { danger } = {}) {
   return new Promise((resolve) => {
     let answered = false;
     const s = sheet(title, h('div', {},
       h('p', { class: 'muted' }, text),
       h('div', { class: 'row end' },
-        h('button', { class: 'btn ghost', onclick: () => { answered = true; s.close(); resolve(false); } }, 'Abbrechen'),
+        h('button', { class: 'btn ghost', onclick: () => { answered = true; s.close(); resolve(false); } }, t('cancel')),
         h('button', { class: `btn ${danger ? 'danger' : 'primary'}`, onclick: () => { answered = true; s.close(); resolve(true); } }, okLabel))),
     { onClose: () => !answered && resolve(false) });
   });
 }
 
-export function promptSheet(title, label, value = '', okLabel = 'Speichern') {
+export function promptSheet(title, label, value = '', okLabel = t('save')) {
   return new Promise((resolve) => {
     let answered = false;
     const input = h('input', { class: 'field', value, 'aria-label': label });
@@ -101,7 +103,7 @@ export function promptSheet(title, label, value = '', okLabel = 'Speichern') {
     const s = sheet(title, h('form', { onsubmit: (e) => { e.preventDefault(); done(input.value.trim()); } },
       h('label', { class: 'label' }, label, input),
       h('div', { class: 'row end' },
-        h('button', { type: 'button', class: 'btn ghost', onclick: () => done(null) }, 'Abbrechen'),
+        h('button', { type: 'button', class: 'btn ghost', onclick: () => done(null) }, t('cancel')),
         h('button', { class: 'btn primary' }, okLabel))),
     { onClose: () => !answered && resolve(null) });
     setTimeout(() => input.focus(), 50);
@@ -111,5 +113,5 @@ export function promptSheet(title, label, value = '', okLabel = 'Speichern') {
 export const uid = () => crypto.getRandomValues(new Uint32Array(2)).reduce((s, n) => s + n.toString(36), '');
 
 export function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(iso).toLocaleDateString(dateLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
 }

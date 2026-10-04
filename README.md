@@ -35,3 +35,10 @@ npm run e2e        # full run on a tablet-sized screen, screenshots in tests/out
 Code map: `src/teeth.js` tooth model (mm), `src/render.js` drawing into the photo, `src/face.js`
 lip finder, `src/editor.js` try-on screen, `src/app.js` patients/lock/sharing, `src/store.js`
 encrypted storage, `src/looks.js` starting looks, `src/shades.js` VITA shades.
+
+## Teeth catalogue and language
+
+- The try-on uses real photos of teeth (`assets/catalog/`, listed in `src/catalog.js`). The practice can add its own photos in the app ("Eigenes Foto"): four points and the inner lip line tell the app where the teeth are. Own photos are stored encrypted on the device and included in backups.
+- Three drawn tooth models remain as an alternative.
+- German is the default; DE/EN can be switched on the lock screen, the patient list and in settings.
+- Brand colour: `--brand` in `styles.css` and `colors.brand` in `src/brand.js` (orange placeholder until the exact CI value is confirmed).
